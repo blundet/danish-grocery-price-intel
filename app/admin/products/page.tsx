@@ -69,7 +69,7 @@ export default function ProductsPage() {
   );
 }
 
-const th = {
+const th: React.CSSProperties = {
   textAlign: "left",
   padding: "12px 8px",
   borderBottom: "1px solid #ddd",
@@ -77,7 +77,7 @@ const th = {
   color: "#374151",
 };
 
-const td = {
+const td: React.CSSProperties = {
   padding: "10px 8px",
   borderBottom: "1px solid #eee",
   color: "#4b5563",
