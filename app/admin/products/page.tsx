@@ -8,13 +8,24 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+interface Product {
+  id: number;
+  name: string;
+  brand?: string;
+  size?: string | number;
+  unit?: string;
+}
+
 export default function ProductsPage() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    supabase.from("products").select("*").then(({ data }) => {
-      setProducts(data || []);
-    });
+    supabase
+      .from("products")
+      .select("*")
+      .then(({ data }) => {
+        setProducts((data as Product[]) || []);
+      });
   }, []);
 
   return (
@@ -47,7 +58,7 @@ export default function ProductsPage() {
                 <td style={td}>{p.name}</td>
                 <td style={td}>{p.brand || "-"}</td>
                 <td style={td}>
-                  {p.size ? `${p.size} ${p.unit}` : "-"}
+                  {p.size ? `${p.size} ${p.unit || ""}` : "-"}
                 </td>
               </tr>
             ))}

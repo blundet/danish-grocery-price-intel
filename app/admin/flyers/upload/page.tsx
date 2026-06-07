@@ -8,22 +8,20 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Debug logs
-console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-console.log(
-  "SUPABASE KEY:",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.slice(0, 10)
-);
+interface ProcessedPage {
+  pageNumber: number;
+  imageBase64: string;
+}
 
 export default function UploadFlyer() {
   const [file, setFile] = useState<File | null>(null);
-  const [store, setStore] = useState("");
-  const [message, setMessage] = useState("");
-  const [dragActive, setDragActive] = useState(false);
-  const [pages, setPages] = useState<any[]>([]);
-  const [processing, setProcessing] = useState(false);
+  const [store, setStore] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
+  const [dragActive, setDragActive] = useState<boolean>(false);
+  const [pages, setPages] = useState<ProcessedPage[]>([]);
+  const [processing, setProcessing] = useState<boolean>(false);
 
-  const handleDrag = (e: any) => {
+  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
@@ -33,7 +31,7 @@ export default function UploadFlyer() {
     }
   };
 
-  const handleDrop = (e: any) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
@@ -43,7 +41,7 @@ export default function UploadFlyer() {
     }
   };
 
-  const upload = async (e: any) => {
+  const upload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage("");
     setPages([]);
@@ -58,7 +56,6 @@ export default function UploadFlyer() {
       return;
     }
 
-    // ⭐ Upload to server route instead of Supabase directly
     const formData = new FormData();
     formData.append("file", file);
     formData.append("store", store);
@@ -71,15 +68,13 @@ export default function UploadFlyer() {
     const uploadJson = await uploadRes.json();
 
     if (uploadJson.error) {
-      console.error("SERVER UPLOAD ERROR:", uploadJson.error);
       setMessage("Upload failed: " + uploadJson.error);
       return;
     }
 
     const filePath = uploadJson.filePath;
 
-    // ⭐ Insert into flyers table
-    const { data, error } = await supabase.from("flyers").insert([
+    const { error } = await supabase.from("flyers").insert([
       {
         store,
         file_url: filePath,
@@ -89,7 +84,6 @@ export default function UploadFlyer() {
     ]);
 
     if (error) {
-      console.error("INSERT ERROR:", error);
       setMessage("Insert failed: " + error.message);
       return;
     }
@@ -97,7 +91,6 @@ export default function UploadFlyer() {
     setMessage("Flyer uploaded! Processing pages…");
     setProcessing(true);
 
-    // Call backend to process PDF
     const res = await fetch("/api/process-flyer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -108,7 +101,7 @@ export default function UploadFlyer() {
     });
 
     const result = await res.json();
-    setPages(result.pages);
+    setPages(result.pages || []);
     setProcessing(false);
     setMessage("PDF processed successfully!");
   };
@@ -130,7 +123,6 @@ export default function UploadFlyer() {
           onSubmit={upload}
           style={{ display: "flex", flexDirection: "column", gap: 24 }}
         >
-          {/* Store selector */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ fontWeight: 600 }}>Store</label>
             <select
@@ -152,7 +144,6 @@ export default function UploadFlyer() {
             </select>
           </div>
 
-          {/* Drag & Drop Zone */}
           <div
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -180,7 +171,6 @@ export default function UploadFlyer() {
             </p>
           </div>
 
-          {/* Hidden file input */}
           <input
             id="fileInput"
             type="file"
@@ -189,7 +179,6 @@ export default function UploadFlyer() {
             style={{ display: "none" }}
           />
 
-          {/* Submit button */}
           <button
             type="submit"
             style={{

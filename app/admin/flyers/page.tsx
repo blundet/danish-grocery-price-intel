@@ -8,13 +8,24 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+interface Flyer {
+  id: number;
+  store: string;
+  file_url: string;
+  valid_from: string;
+  valid_to: string;
+}
+
 export default function FlyersPage() {
-  const [flyers, setFlyers] = useState<any[]>([]);
+  const [flyers, setFlyers] = useState<Flyer[]>([]);
 
   useEffect(() => {
-    supabase.from("flyers").select("*").then(({ data }) => {
-      setFlyers(data || []);
-    });
+    supabase
+      .from("flyers")
+      .select("*")
+      .then(({ data }) => {
+        setFlyers((data as Flyer[]) || []);
+      });
   }, []);
 
   return (
