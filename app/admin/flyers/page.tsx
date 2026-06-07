@@ -9,7 +9,7 @@ const supabase = createClient(
 );
 
 export default function FlyersPage() {
-  const [flyers, setFlyers] = useState([]);
+  const [flyers, setFlyers] = useState<any[]>([]);
 
   useEffect(() => {
     supabase.from("flyers").select("*").then(({ data }) => {
