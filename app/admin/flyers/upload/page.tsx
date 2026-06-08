@@ -41,7 +41,7 @@ export default function UploadFlyer() {
     }
   };
 
-  // ⭐ NEW: Upload to Vercel Blob instead of Supabase Storage
+  // ⭐ Upload to Vercel Blob
   async function uploadToBlob(file: File) {
     const formData = new FormData();
     formData.append("file", file);
@@ -57,7 +57,7 @@ export default function UploadFlyer() {
       throw new Error(json.error || "Blob upload failed");
     }
 
-    return json.url; // ⭐ This is the public Blob URL
+    return json.url;
   }
 
   const upload = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -76,10 +76,10 @@ export default function UploadFlyer() {
     }
 
     try {
-      // ⭐ Upload file to Vercel Blob
+      // ⭐ Upload to Blob
       const blobUrl = await uploadToBlob(file);
 
-      // ⭐ Save metadata in Supabase (NOT the file itself)
+      // ⭐ Save metadata in Supabase
       const { error } = await supabase.from("flyers").insert([
         {
           store,
@@ -97,7 +97,7 @@ export default function UploadFlyer() {
       setMessage("Flyer uploaded! Processing pages…");
       setProcessing(true);
 
-      // ⭐ Continue using your existing PDF processing route
+      // ⭐ Process PDF pages
       const res = await fetch("/api/process-flyer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
