@@ -41,6 +41,25 @@ export default function UploadFlyer() {
     }
   };
 
+  // ⭐ NEW: Upload to Vercel Blob instead of Supabase Storage
+  async function uploadToBlob(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || json.error) {
+      throw new Error(json.error || "Blob upload failed");
+    }
+
+    return json.url; // ⭐ This is the public Blob URL
+  }
+
   const upload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage("");
@@ -56,54 +75,45 @@ export default function UploadFlyer() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("store", store);
+    try {
+      // ⭐ Upload file to Vercel Blob
+      const blobUrl = await uploadToBlob(file);
 
-    const uploadRes = await fetch("/api/upload-flyer", {
-      method: "POST",
-      body: formData,
-    });
+      // ⭐ Save metadata in Supabase (NOT the file itself)
+      const { error } = await supabase.from("flyers").insert([
+        {
+          store,
+          file_url: blobUrl,
+          valid_from: new Date().toISOString(),
+          valid_to: new Date().toISOString(),
+        },
+      ]);
 
-    const uploadJson = await uploadRes.json();
+      if (error) {
+        setMessage("Insert failed: " + error.message);
+        return;
+      }
 
-    if (uploadJson.error) {
-      setMessage("Upload failed: " + uploadJson.error);
-      return;
+      setMessage("Flyer uploaded! Processing pages…");
+      setProcessing(true);
+
+      // ⭐ Continue using your existing PDF processing route
+      const res = await fetch("/api/process-flyer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileUrl: blobUrl,
+          store,
+        }),
+      });
+
+      const result = await res.json();
+      setPages(result.pages || []);
+      setProcessing(false);
+      setMessage("PDF processed successfully!");
+    } catch (err: any) {
+      setMessage("Upload failed: " + err.message);
     }
-
-    const filePath = uploadJson.filePath;
-
-    const { error } = await supabase.from("flyers").insert([
-      {
-        store,
-        file_url: filePath,
-        valid_from: new Date().toISOString(),
-        valid_to: new Date().toISOString(),
-      },
-    ]);
-
-    if (error) {
-      setMessage("Insert failed: " + error.message);
-      return;
-    }
-
-    setMessage("Flyer uploaded! Processing pages…");
-    setProcessing(true);
-
-    const res = await fetch("/api/process-flyer", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fileUrl: filePath,
-        store,
-      }),
-    });
-
-    const result = await res.json();
-    setPages(result.pages || []);
-    setProcessing(false);
-    setMessage("PDF processed successfully!");
   };
 
   return (
