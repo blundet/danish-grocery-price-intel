@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { put } from "@vercel/blob";
 
 export async function POST(req: Request) {
   try {
@@ -11,28 +11,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Create Supabase client with SERVICE ROLE KEY (server-side only)
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY! // no RLS, no size limit
-    );
+    // Upload to Vercel Blob
+    const blob = await put(file.name, file, {
+      access: "public",
+      token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
+    });
 
-    const filePath = `flyers/${Date.now()}-${file.name}`;
-
-    // Upload using service role (no size limit)
-    const { data, error } = await supabase.storage
-      .from("flyers")
-      .upload(filePath, file, {
-        upsert: false,
-      });
-
-    if (error) {
-      console.error("SERVER UPLOAD ERROR:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
+    // Return blob URL and store name
     return NextResponse.json({
-      filePath,
+      url: blob.url,
       store,
     });
   } catch (err: any) {
