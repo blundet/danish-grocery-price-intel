@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { put } from "@vercel/blob";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -42,17 +41,7 @@ export default function UploadFlyer() {
     }
   };
 
-  // ⭐ Upload directly to Vercel Blob (NO API ROUTE)
-async function uploadToBlob(file: File) {
-  const blob = await put(file.name, file, {
-    access: "public",
-    token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN!,
-    storeId: process.env.NEXT_PUBLIC_BLOB_STORE_ID!,
-  });
-
-  return blob.url;
-}
-
+  // ⭐ Upload to Supabase via API route
   const upload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage("");
@@ -69,14 +58,30 @@ async function uploadToBlob(file: File) {
     }
 
     try {
-      // ⭐ Upload directly to Blob
-      const blobUrl = await uploadToBlob(file);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("store", store);
+
+      // ⭐ Send file to Supabase upload route
+      const res = await fetch("/api/upload-flyer", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (data.error) {
+        setMessage("Upload failed: " + data.error);
+        return;
+      }
+
+      const fileUrl = data.url;
 
       // ⭐ Save metadata in Supabase
       const { error } = await supabase.from("flyers").insert([
         {
           store,
-          file_url: blobUrl,
+          file_url: fileUrl,
           valid_from: new Date().toISOString(),
           valid_to: new Date().toISOString(),
         },
@@ -91,16 +96,16 @@ async function uploadToBlob(file: File) {
       setProcessing(true);
 
       // ⭐ Process PDF pages
-      const res = await fetch("/api/process-flyer", {
+      const processRes = await fetch("/api/process-flyer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fileUrl: blobUrl,
+          fileUrl,
           store,
         }),
       });
 
-      const result = await res.json();
+      const result = await processRes.json();
       setPages(result.pages || []);
       setProcessing(false);
       setMessage("PDF processed successfully!");
