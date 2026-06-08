@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 
-export const runtime = "edge"; // ⭐ Required to bypass body size limits
+// ⭐ Use Edge runtime to bypass body‑size limits
+export const runtime = "edge";
 
 export async function POST(req: Request) {
   try {
@@ -12,14 +13,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // ⭐ Upload directly to Blob (Edge runtime supports large files)
-    const blob = await put(file.name, file, {
-      access: "public",
-    });
+    // ⭐ Upload directly to Vercel Blob
+    const blob = await put(file.name, file, { access: "public" });
 
     return NextResponse.json({ url: blob.url });
   } catch (err: any) {
-    console.error("UPLOAD ERROR:", err);
+    console.error("UPLOAD ERROR:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
