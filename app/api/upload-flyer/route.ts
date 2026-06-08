@@ -1,33 +1,43 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const store = formData.get("store") as string;
-    const token = formData.get("token") as string;
-    const storeId = formData.get("storeId") as string;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (!token || !storeId) {
-      return NextResponse.json(
-        { error: "Missing Blob credentials" },
-        { status: 500 }
-      );
+    // Create Supabase client (server-side)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY! // service role = no size limit
+    );
+
+    const filePath = `flyers/${Date.now()}-${file.name}`;
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from("flyers")
+      .upload(filePath, file, {
+        upsert: false,
+      });
+
+    if (error) {
+      console.error("UPLOAD ERROR:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const blob = await put(file.name, file, {
-      access: "public",
-      token,
-      storeId,
-    });
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from("flyers")
+      .getPublicUrl(filePath);
 
     return NextResponse.json({
-      url: blob.url,
+      url: publicUrlData.publicUrl,
       store,
     });
   } catch (err: any) {
