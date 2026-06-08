@@ -41,7 +41,7 @@ export default function UploadFlyer() {
     }
   };
 
-  // ⭐ Upload to Vercel Blob
+  // Upload to Vercel Blob
   async function uploadToBlob(file: File) {
     const formData = new FormData();
     formData.append("file", file);
@@ -76,10 +76,10 @@ export default function UploadFlyer() {
     }
 
     try {
-      // ⭐ Upload to Blob
+      // Upload to Blob
       const blobUrl = await uploadToBlob(file);
 
-      // ⭐ Save metadata in Supabase
+      // Save metadata in Supabase
       const { error } = await supabase.from("flyers").insert([
         {
           store,
@@ -97,7 +97,7 @@ export default function UploadFlyer() {
       setMessage("Flyer uploaded! Processing pages…");
       setProcessing(true);
 
-      // ⭐ Process PDF pages
+      // Process PDF pages
       const res = await fetch("/api/process-flyer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
