@@ -43,13 +43,15 @@ export default function UploadFlyer() {
   };
 
   // ⭐ Upload directly to Vercel Blob (NO API ROUTE)
-  async function uploadToBlob(file: File) {
-    const blob = await put(file.name, file, {
-      access: "public",
-    });
+async function uploadToBlob(file: File) {
+  const blob = await put(file.name, file, {
+    access: "public",
+    token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN!,
+    storeId: process.env.NEXT_PUBLIC_BLOB_STORE_ID!,
+  });
 
-    return blob.url;
-  }
+  return blob.url;
+}
 
   const upload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
