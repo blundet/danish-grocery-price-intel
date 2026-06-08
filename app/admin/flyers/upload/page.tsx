@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { put } from "@vercel/blob";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,23 +42,13 @@ export default function UploadFlyer() {
     }
   };
 
-  // Upload to Vercel Blob
+  // ⭐ Upload directly to Vercel Blob (NO API ROUTE)
   async function uploadToBlob(file: File) {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
+    const blob = await put(file.name, file, {
+      access: "public",
     });
 
-    const json = await res.json();
-
-    if (!res.ok || json.error) {
-      throw new Error(json.error || "Blob upload failed");
-    }
-
-    return json.url;
+    return blob.url;
   }
 
   const upload = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -76,10 +67,10 @@ export default function UploadFlyer() {
     }
 
     try {
-      // Upload to Blob
+      // ⭐ Upload directly to Blob
       const blobUrl = await uploadToBlob(file);
 
-      // Save metadata in Supabase
+      // ⭐ Save metadata in Supabase
       const { error } = await supabase.from("flyers").insert([
         {
           store,
@@ -97,7 +88,7 @@ export default function UploadFlyer() {
       setMessage("Flyer uploaded! Processing pages…");
       setProcessing(true);
 
-      // Process PDF pages
+      // ⭐ Process PDF pages
       const res = await fetch("/api/process-flyer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
