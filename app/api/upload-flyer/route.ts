@@ -11,13 +11,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    // Explicitly read both env vars
+    const token = process.env.BLOB_READ_WRITE_TOKEN || process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
+    const storeId = process.env.BLOB_STORE_ID;
+
+    if (!token || !storeId) {
+      console.error("Missing Blob credentials:", { token, storeId });
+      return NextResponse.json({ error: "Blob credentials missing" }, { status: 500 });
+    }
+
     // Upload to Vercel Blob
     const blob = await put(file.name, file, {
       access: "public",
-      token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
+      token,
+      storeId,
     });
 
-    // Return blob URL and store name
     return NextResponse.json({
       url: blob.url,
       store,
